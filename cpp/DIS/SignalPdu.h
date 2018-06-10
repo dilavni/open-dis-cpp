@@ -28,11 +28,11 @@ protected:
   /** sample rate */
   unsigned int _sampleRate; 
 
-  /** length od data */
-  short _dataLength; 
+  /** data length field, length of data in bits or a constant*/
+  unsigned short _dataLength;
 
   /** number of samples */
-  short _samples; 
+  unsigned short _samples;
 
   /** list of eight bit values */
   std::vector<OneByteChunk> _data; 
@@ -54,14 +54,15 @@ protected:
     unsigned int getSampleRate() const; 
     void setSampleRate(unsigned int pX); 
 
-    short getDataLength() const; 
+    // void setDataLength(const unsigned short dataLength) const;
+    unsigned short getDataLengthInBits() const;
 
-    short getSamples() const; 
-    void setSamples(short pX); 
+    unsigned short getSamples() const;
+    void setSamples(unsigned short pX);
 
-    std::vector<OneByteChunk>& getData(); 
-    const std::vector<OneByteChunk>& getData() const; 
-    void setData(const std::vector<OneByteChunk>&    pX);
+    //std::vector<OneByteChunk>& getData(); // we cannot allow this as _dataLength has to be in sync
+    const std::vector<OneByteChunk>& getData() const; // const is fine
+    void setData(const std::vector<OneByteChunk>& pX, const unsigned short customDataBitLength = 0);
 
 
 virtual int getMarshalledSize() const;

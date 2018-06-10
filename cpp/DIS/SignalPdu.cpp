@@ -1,5 +1,7 @@
 #include <DIS/SignalPdu.h> 
 
+#include<iostream> // added for debug
+
 using namespace DIS;
 
 
@@ -48,34 +50,52 @@ void SignalPdu::setSampleRate(unsigned int pX)
     _sampleRate = pX;
 }
 
-short SignalPdu::getDataLength() const
+unsigned short SignalPdu::getDataLengthInBits() const
 {
-   return _data.size();
+    return _dataLength; // the "data lenth" field is in BITS. Byte assumption can blow in your face.
 }
 
-short SignalPdu::getSamples() const
+unsigned short SignalPdu::getSamples() const
 {
     return _samples;
 }
 
-void SignalPdu::setSamples(short pX)
+void SignalPdu::setSamples(unsigned short pX)
 {
     _samples = pX;
 }
 
-std::vector<OneByteChunk>& SignalPdu::getData() 
+// direct non-const access cannot be allowed:
+/*std::vector<OneByteChunk>& SignalPdu::getData()
 {
     return _data;
-}
+}*/
 
 const std::vector<OneByteChunk>& SignalPdu::getData() const
 {
     return _data;
 }
 
-void SignalPdu::setData(const std::vector<OneByteChunk>& pX)
+void SignalPdu::setData(const std::vector<OneByteChunk>& pX, const unsigned short customDataBitLength)
 {
-     _data = pX;
+    if(customDataBitLength && customDataBitLength <= pX.size() * 8)
+        _dataLength = customDataBitLength;
+    else _dataLength = pX.size() * 8;
+
+    // copy:
+    _data = pX;
+
+    // pad the data to 64-bit alignment, TODO: check the standard for the correct amount of padding
+    const size_t paddingBytesTo64 = pX.size() % 8;
+    const OneByteChunk padding; // auto initialized to 0
+
+    //_data.reserve(_data.size() + paddingBytesTo64);
+
+    for(size_t i = 0; i < paddingBytesTo64; ++i)
+    {
+        _data.emplace_back(padding);
+    }
+
 }
 
 void SignalPdu::marshal(DataStream& dataStream) const
@@ -84,14 +104,29 @@ void SignalPdu::marshal(DataStream& dataStream) const
     dataStream << _encodingScheme;
     dataStream << _tdlType;
     dataStream << _sampleRate;
-    dataStream << ( short )_data.size();
+
+    const auto unalignedBits = _dataLength % 8;
+
+    if(!unalignedBits)
+        dataStream << static_cast<unsigned short>(_data.size() * 8);
+    else dataStream << _dataLength;
+
     dataStream << _samples;
 
-     for(size_t idx = 0; idx < _data.size(); idx++)
-     {
-        OneByteChunk x = _data[idx];
-        x.marshal(dataStream);
-     }
+    if(_data.size() * 8 < _dataLength) {
+        std::cerr<<__FUNCTION__<<": Not enough data in buffer to marshal (the PDU is malformed)"<<std::endl;
+        return; // we cannot proceed
+    }
+
+    const size_t dataByteLength = (_dataLength / 8 + (unalignedBits ? 1 : 0));
+
+    for(size_t idx = 0; idx < dataByteLength; idx++)
+    {
+        //OneByteChunk x = _data[idx]; // unnecessary copy
+        //x.marshal(dataStream);
+        _data[idx].marshal(dataStream);
+    }
+
 
 }
 
@@ -104,13 +139,18 @@ void SignalPdu::unmarshal(DataStream& dataStream)
     dataStream >> _dataLength;
     dataStream >> _samples;
 
+    const size_t dataByteLength = _dataLength / 8 + (_dataLength % 8 ? 1 : 0);
+
      _data.clear();
-     for(size_t idx = 0; idx < _dataLength; idx++)
+     _data.resize(dataByteLength, OneByteChunk());
+
+     for(size_t idx = 0; idx < dataByteLength; idx++)
      {
         OneByteChunk x;
         x.unmarshal(dataStream);
-        _data.push_back(x);
+        _data[idx]=x;
      }
+
 }
 
 
