@@ -78,23 +78,12 @@ const std::vector<OneByteChunk>& SignalPdu::getData() const
 
 void SignalPdu::setData(const std::vector<OneByteChunk>& pX, const unsigned short customDataBitLength)
 {
-    if(customDataBitLength && customDataBitLength <= pX.size() * 8)
+    if(customDataBitLength && (customDataBitLength <= pX.size() * 8))
         _dataLength = customDataBitLength;
     else _dataLength = pX.size() * 8;
 
     // copy:
     _data = pX;
-
-    // pad the data to 64-bit alignment, TODO: check the standard for the correct amount of padding
-    const size_t paddingBytesTo64 = pX.size() % 8;
-    const OneByteChunk padding; // auto initialized to 0
-
-    //_data.reserve(_data.size() + paddingBytesTo64);
-
-    for(size_t i = 0; i < paddingBytesTo64; ++i)
-    {
-        _data.emplace_back(padding);
-    }
 
 }
 
@@ -107,10 +96,7 @@ void SignalPdu::marshal(DataStream& dataStream) const
 
     const auto unalignedBits = _dataLength % 8;
 
-    if(!unalignedBits)
-        dataStream << static_cast<unsigned short>(_data.size() * 8);
-    else dataStream << _dataLength;
-
+    dataStream << _dataLength;
     dataStream << _samples;
 
     if(_data.size() * 8 < _dataLength) {
@@ -122,8 +108,6 @@ void SignalPdu::marshal(DataStream& dataStream) const
 
     for(size_t idx = 0; idx < dataByteLength; idx++)
     {
-        //OneByteChunk x = _data[idx]; // unnecessary copy
-        //x.marshal(dataStream);
         _data[idx].marshal(dataStream);
     }
 
