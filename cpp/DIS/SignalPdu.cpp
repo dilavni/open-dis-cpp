@@ -78,12 +78,21 @@ const std::vector<OneByteChunk>& SignalPdu::getData() const
 
 void SignalPdu::setData(const std::vector<OneByteChunk>& pX, const unsigned short customDataBitLength)
 {
+    const auto customByteLength = customDataBitLength / 8 + ((customDataBitLength % 8) ? 1 : 0);
+
     if(customDataBitLength && (customDataBitLength <= pX.size() * 8))
         _dataLength = customDataBitLength;
     else _dataLength = pX.size() * 8;
 
     // copy:
-    _data = pX;
+    if(!customDataBitLength || customByteLength == pX.size()) {
+        _data = pX;
+    }
+    else{ // we're given too much data, limit to byte length
+        _data.resize(customByteLength);
+        for(unsigned short i = 0; i < customByteLength; ++i)
+            _data[i] = pX[i];
+    }
 
 }
 
