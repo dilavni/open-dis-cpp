@@ -178,10 +178,12 @@ int SignalPdu::getMarshalledSize() const
    marshalSize = marshalSize + 2;  // _dataLength
    marshalSize = marshalSize + 2;  // _samples
 
+   // this seems very unnecessary (this container cells are always of uniform size):
    for(int idx=0; idx < _data.size(); idx++)
    {
-        OneByteChunk listElement = _data[idx];
-        marshalSize = marshalSize + listElement.getMarshalledSize();
+       marshalSize += _data[idx].getMarshalledSize(); // less copying
+        //OneByteChunk listElement = _data[idx]; // why this copy?
+        //marshalSize = marshalSize + listElement.getMarshalledSize();
     }
 
     return marshalSize;
