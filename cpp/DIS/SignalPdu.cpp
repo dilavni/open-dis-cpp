@@ -135,7 +135,7 @@ void SignalPdu::unmarshal(DataStream& dataStream)
     const size_t dataByteLength = _dataLength / 8 + (_dataLength % 8 ? 1 : 0);
 
      _data.clear();
-     _data.resize(dataByteLength, OneByteChunk());
+     _data.resize(dataByteLength); // default cons of OneByteChunk called
 
      for(size_t idx = 0; idx < dataByteLength; idx++)
      {
