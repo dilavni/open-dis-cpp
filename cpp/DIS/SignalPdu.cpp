@@ -76,9 +76,11 @@ const std::vector<OneByteChunk>& SignalPdu::getData() const
     return _data;
 }
 
+// note: this member does not mask the unaligned bits to 0 (the last byte is sent as is). requires the receiver to do masking based on _dataLength
 void SignalPdu::setData(const std::vector<OneByteChunk>& pX, const unsigned short customDataBitLength)
 {
-    const auto customByteLength = customDataBitLength / 8 + ((customDataBitLength % 8) ? 1 : 0);
+    const auto unalignedBits = customDataBitLength & 8;
+    const auto customByteLength = customDataBitLength / 8 + (unalignedBits ? 1 : 0);
 
     if(customDataBitLength && (customDataBitLength <= pX.size() * 8))
         _dataLength = customDataBitLength;
@@ -178,13 +180,12 @@ int SignalPdu::getMarshalledSize() const
    marshalSize = marshalSize + 2;  // _dataLength
    marshalSize = marshalSize + 2;  // _samples
 
-   // this seems very unnecessary (this container cells are always of uniform size):
+   // this seems very unnecessary (_data container cells are always of uniform size)
+   // how about: marshalSize += (_data.size() ? (_data.size() * _data[0].getMarshalledSize()) : 0);
    for(int idx=0; idx < _data.size(); idx++)
    {
-       marshalSize += _data[idx].getMarshalledSize(); // less copying
-        //OneByteChunk listElement = _data[idx]; // why this copy?
-        //marshalSize = marshalSize + listElement.getMarshalledSize();
-    }
+       marshalSize += _data[idx].getMarshalledSize();
+   }
 
     return marshalSize;
 }
