@@ -79,7 +79,7 @@ const std::vector<OneByteChunk>& SignalPdu::getData() const
 // note: this member does not mask the unaligned bits to 0 (the last byte is sent as is). requires the receiver to do masking based on _dataLength
 void SignalPdu::setData(const std::vector<OneByteChunk>& pX, const unsigned short customDataBitLength)
 {
-    const auto unalignedBits = customDataBitLength & 8;
+    const auto unalignedBits = customDataBitLength % 8;
     const auto customByteLength = customDataBitLength / 8 + (unalignedBits ? 1 : 0);
 
     if(customDataBitLength && (customDataBitLength <= pX.size() * 8))
